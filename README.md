@@ -26,7 +26,6 @@ The product promise is simple: upload your syllabus, review what was extracted, 
 - Vite
 - Vanilla JavaScript
 - Local browser storage for demo persistence
-- Optional Supabase schema included under `supabase/`
 - Vercel for deployment
 
 ## Local development
