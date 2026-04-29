@@ -28,7 +28,7 @@ import { parseCourseFiles } from "./parser.js";
 import { buildPlannerSnapshot, buildWeeklyReset, semesterWeeks } from "./planner.js";
 import { addDays, escapeHtml, formatLong, isoDay, monthMatrix, uid } from "./utils.js";
 
-const routes = ["today", "courses", "calendar", "assignments", "study", "upload", "settings"];
+const appRoutes = ["today", "courses", "calendar", "assignments", "study", "upload", "settings"];
 const uploadSteps = [
   "Reading file",
   "Finding course details",
@@ -108,7 +108,9 @@ function friendlyStartupError(error) {
 
 function resolveRoute() {
   const hash = window.location.hash.replace(/^#\/?/, "");
-  return routes.includes(hash) ? hash : "today";
+  if (!hash) return "landing";
+  if (hash === "program") return "program";
+  return appRoutes.includes(hash) ? hash : "landing";
 }
 
 async function hydrateWorkspace() {
@@ -199,6 +201,12 @@ function selectedDraft() {
 }
 
 function render() {
+  if (state.ui.route === "landing") {
+    root.innerHTML = renderLandingPage();
+    bindEvents();
+    return;
+  }
+
   const step = setupStep();
   if (step === "starting") {
     root.innerHTML = renderShell("Getting Class Compass ready", renderStarting());
@@ -231,11 +239,132 @@ function render() {
     settings: renderSettings(),
   };
 
-  root.innerHTML = renderShell(pageTitle(), views[state.ui.route]);
+  const activeRoute = currentAppRoute();
+  root.innerHTML = renderShell(pageTitle(activeRoute), views[activeRoute]);
   bindEvents();
 }
 
+function currentAppRoute() {
+  return state.ui.route === "program" ? "today" : state.ui.route;
+}
+
+function renderLandingPage() {
+  return `
+    <main class="landing-shell">
+      <nav class="landing-nav" aria-label="Class Compass">
+        <div class="brand-block">
+          <span class="brand-mark">CC</span>
+          <div>
+            <p class="eyebrow">Class Compass</p>
+            <h1>Student semester planner</h1>
+          </div>
+        </div>
+        <div class="landing-links" aria-label="Landing navigation">
+          <a href="#landing-flow">Flow</a>
+          <a href="#landing-study">Study</a>
+          <a href="#landing-trust">Trust</a>
+        </div>
+        <button class="secondary-button" data-action="launch-program">Launch app</button>
+      </nav>
+
+      <section class="landing-hero">
+        <div class="landing-copy">
+          <button class="landing-announcement" data-action="launch-program">
+            <span>New</span>
+            Syllabus scanner and study planner
+            <strong>→</strong>
+          </button>
+          <h2>
+            Upload your syllabus.
+            <span class="rotate-line">Get your <span class="text-rotate" aria-hidden="true"><span>semester plan.</span><span>deadline map.</span><span>study queue.</span><span>course clarity.</span></span></span>
+          </h2>
+          <p class="body-copy">Class Compass turns messy course files into a clear plan for deadlines, readings, grading weight, and what to do next.</p>
+          <div class="button-row landing-actions">
+            <button class="primary-button" data-action="launch-program">Launch Class Compass</button>
+            <button class="link-button" data-action="launch-sample">Try sample syllabus</button>
+          </div>
+        </div>
+
+        <div class="landing-preview" aria-label="Product preview">
+          <div class="floating-source source-a"><strong>BIO 142</strong><span>Syllabus found 7 deadlines</span></div>
+          <div class="floating-source source-b"><strong>ENG 201</strong><span>Rubric checklist ready</span></div>
+          <div class="floating-source source-c"><strong>Week 7</strong><span>Heavy workload</span></div>
+          <div class="preview-window-bar"><span></span><span></span><span></span></div>
+          <div class="preview-topline">
+            <span>Today</span>
+            <strong>3 priority moves</strong>
+          </div>
+          <div class="preview-command">
+            <small>Next best action</small>
+            <strong>Start Lab Report 1</strong>
+            <span>Due soon · 8% of grade · BIO 142</span>
+          </div>
+          <div class="preview-grid">
+            <div>
+              <small>Import review</small>
+              <strong>89%</strong>
+              <span>confidence</span>
+            </div>
+            <div>
+              <small>Semester Map</small>
+              <strong>Heavy</strong>
+              <span>2 items this week</span>
+            </div>
+          </div>
+          <div class="preview-list">
+            <span><b></b> Extract deadlines</span>
+            <span><b></b> Confirm grade weight</span>
+            <span><b></b> Build Today queue</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="landing-product-shot" aria-label="Class Compass workspace preview">
+        <div class="shot-sidebar">
+          <strong>Class Compass</strong>
+          <span class="active">Today</span>
+          <span>Courses</span>
+          <span>Semester Map</span>
+          <span>Study</span>
+        </div>
+        <div class="shot-main">
+          <div class="shot-header">
+            <div>
+              <small>Today's plan</small>
+              <strong>Start here. These are the highest-value moves today.</strong>
+            </div>
+            <button data-action="launch-program">Open app</button>
+          </div>
+          <div class="shot-grid">
+            <div class="shot-card large" id="landing-flow">
+              <small>Next best action</small>
+              <strong>Draft Lab Report 1 intro</strong>
+              <span>Due soon · 25 min · 8% of grade</span>
+            </div>
+            <div class="shot-card">
+              <small>Import review</small>
+              <strong>12 approved</strong>
+              <span>5 need review</span>
+            </div>
+            <div class="shot-card" id="landing-study">
+              <small>Study Mode</small>
+              <strong>Quiz from notes</strong>
+              <span>Source-cited practice</span>
+            </div>
+            <div class="shot-card timeline" id="landing-trust">
+              <small>Semester Map</small>
+              <div><span></span><span></span><span class="heavy"></span><span></span><span class="crunch"></span></div>
+              <em>Heavy weeks show before they become emergencies.</em>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  `;
+}
+
 function renderShell(title, view) {
+  const activeRoute = currentAppRoute();
   return `
     <div class="app-shell">
       <aside class="sidebar">
@@ -247,7 +376,7 @@ function renderShell(title, view) {
           </div>
         </div>
         <nav class="nav">
-          ${routes.map((route) => `<button class="${state.ui.route === route ? "active" : ""}" data-route="${route}">${navIcon(route)}<span>${label(route)}</span></button>`).join("")}
+          ${appRoutes.map((route) => `<button class="${activeRoute === route ? "active" : ""}" data-route="${route}">${navIcon(route)}<span>${label(route)}</span></button>`).join("")}
         </nav>
         <button class="sidebar-add" data-action="go-upload">${navIcon("upload")} Add file</button>
         ${
@@ -264,7 +393,7 @@ function renderShell(title, view) {
       <main class="main-shell">
         <header class="topbar">
           <div>
-            <p class="eyebrow">${label(state.ui.route)}</p>
+            <p class="eyebrow">${label(activeRoute)}</p>
             <h2>${escapeHtml(title)}</h2>
           </div>
           <div class="topbar-actions">
@@ -1129,6 +1258,20 @@ function renderSettings() {
 }
 
 function bindEvents() {
+  document.querySelectorAll("[data-action='launch-program']").forEach((button) => {
+    button.onclick = () => {
+      window.location.hash = "#/program";
+    };
+  });
+  document.querySelectorAll("[data-action='launch-sample']").forEach((button) => {
+    button.onclick = async () => {
+      window.location.hash = "#/program";
+      if (!state.user) return;
+      const file = new File([sampleSyllabusText()], "BIO 142 Syllabus.txt", { type: "text/plain" });
+      await processCourseFiles([file]);
+      render();
+    };
+  });
   document.querySelectorAll("[data-route]").forEach((button) => {
     button.onclick = () => {
       window.location.hash = `#/${button.dataset.route}`;
@@ -2193,7 +2336,7 @@ function label(route) {
   }[route];
 }
 
-function pageTitle() {
+function pageTitle(route = state.ui.route) {
   return {
     today: "Today's plan",
     courses: "Course command center",
@@ -2202,5 +2345,5 @@ function pageTitle() {
     study: "Study Mode",
     upload: "Upload syllabus",
     settings: "Settings",
-  }[state.ui.route];
+  }[route];
 }
